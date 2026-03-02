@@ -1,0 +1,5 @@
+first_name,last_name,email,age,is_active
+Ana,Popescu,ana.popescu@example.com,28,true
+Mihai,Ionescu,mihai.ionescu@example.com,31,true
+Ioana,Marin,ioana.marin@example.com,24,false
+Dan,Georgescu,dan.georgescu@example.com,35,true

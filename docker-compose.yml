@@ -1,0 +1,55 @@
+services:
+  db:
+    image: postgres:16
+    container_name: attendees-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: attendees-backend
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_NAME: ${POSTGRES_DB}
+    ports:
+      - "${BACKEND_PORT}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: attendees-frontend
+    environment:
+      VITE_API_BASE_URL: "http://localhost:${BACKEND_PORT}"
+    ports:
+      - "${FRONTEND_PORT}:5173"
+    depends_on:
+      - backend
+
+  ubuntu:
+    build:
+      context: ./ubuntu
+    container_name: attendees-ubuntu
+    depends_on:
+      - backend
+      - db
+
+volumes:
+  pgdata:
