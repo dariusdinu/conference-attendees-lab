@@ -7,8 +7,21 @@ from .models import Attendee
 from .seed import seed_from_csv
 from .routes import router as users_router
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="Conference Attendees API")
+
+@asynccontextmanager
+async def lifespan(_app):
+    create_tables(_engine)
+
+    with _SessionLocal() as session:
+        count = session.execute(select(func.count()).select_from(Attendee)).scalar_one()
+        if count == 0:
+            seed_from_csv(session, Path("/app/seed_attendees.csv"))
+
+    yield
+
+app = FastAPI(title="Conference Attendees API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,16 +36,6 @@ app.add_middleware(
 
 _engine = get_engine()
 _SessionLocal = get_session_factory(_engine)
-
-@app.on_event("startup")
-def on_startup():
-    create_tables(_engine)
-
-    with _SessionLocal() as session:
-        count = session.execute(select(func.count()).select_from(Attendee)).scalar_one()
-        if count == 0:
-            csv_path = Path("/app/seed_attendees.csv")
-            seed_from_csv(session, csv_path)
 
 @app.get("/health")
 def health():
